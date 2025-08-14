@@ -4,7 +4,7 @@ type EventListener<T> = (data: T) => void;
 
 export type ObservableCollectionEvents<T> = {
   'collectionChanged': {
-    action: 'insert' | 'remove' | 'move' | 'clear';
+    action: 'insert' | 'remove' | 'move' | 'clear' | 'update';
     item?: T;
     oldIndex?: number;
     newIndex?: number;
@@ -21,25 +21,29 @@ export class ObservableCollection<T> {
     return this._collection.includes(item);
   }
 
+  public get items(): T[] {
+    return this._collection;
+  }
+
   public add(item: T): void {
     this._collection = [item, ...this._collection];
     const index = 0;
 
-    // if (item instanceof NotifyPropertyChanged) {
-    //   const listener = (_: any) => {
-    //     const currentIndex = this.findIndex(item);
+    if (item instanceof NotifyPropertyChanged) {
+      const listener = (_: any) => {
+        const currentIndex = this.findIndex(item);
 
-    //     this.invoke('collectionChanged', {
-    //       action: 'update',
-    //       item: item,
-    //       propertyName: _.propertyName,
-    //       oldIndex: currentIndex
-    //     });
-    //   };
+        this.invoke('collectionChanged', {
+          action: 'update',
+          item: item,
+          propertyName: _.propertyName,
+          oldIndex: currentIndex
+        });
+      };
 
-    //   item.subscribe('propertyChanged', listener);
-    //   this._propertyChangedListeners.set(item, listener);
-    // }
+      item.subscribe('propertyChanged', listener);
+      this._propertyChangedListeners.set(item, listener);
+    }
 
     this.invoke('collectionChanged', {
       action: 'insert',
@@ -93,17 +97,17 @@ export class ObservableCollection<T> {
     const oldItems = [...this._collection];
     this._collection = [];
 
-    // Unsubscribe from property changes of all items
-    // oldItems.forEach(item => {
-    //   if (item instanceof NotifyPropertyChanged) {
-    //     const listener = this._propertyChangedListeners.get(item);
+    //Unsubscribe from property changes of all items
+    oldItems.forEach(item => {
+      if (item instanceof NotifyPropertyChanged) {
+        const listener = this._propertyChangedListeners.get(item);
 
-    //     if (listener) {
-    //       item.unsubscribe('propertyChanged', listener);
-    //       this._propertyChangedListeners.delete(item);
-    //     }
-    //   }
-    // });
+        if (listener) {
+          item.unsubscribe('propertyChanged', listener);
+          this._propertyChangedListeners.delete(item);
+        }
+      }
+    });
 
     if (oldItems.length > 0) {
       this.invoke('collectionChanged', {
@@ -145,7 +149,5 @@ export class ObservableCollection<T> {
     if (eventListeners) {
       eventListeners.forEach(listener => listener(data));
     }
-
-    console.log(`Event: ${event}`, data);
   }
 }

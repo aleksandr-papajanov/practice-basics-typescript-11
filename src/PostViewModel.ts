@@ -59,6 +59,10 @@ export class PostViewModel extends NotifyPropertyChanged<IPostViewModel> impleme
     this.raiseAndSetIfChanged(this._isSelected, value, 'isSelected', (v) => this._isSelected = v);
   }
 
+  public get source(): IPost {
+    return this._source;
+  }
+
   constructor(post: IPost) {
     super();
 

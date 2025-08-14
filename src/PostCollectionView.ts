@@ -66,6 +66,9 @@ export class PostCollectionView {
         container.innerHTML = '';
         break;
 
+      case 'update':
+        break;
+
       default:
         throw new Error(`Unknown collection action: ${action}`);
     }
@@ -107,6 +110,13 @@ export class PostCollectionView {
         <div class="errors"></div>
 
         <form>
+          <div class="form-group actions">
+            <button type="button" class="load-predefined">Load 10 predefined posts</button>
+            <button type="button" class="save-collection">Save to storage</button>
+            <button type="button" class="load-collection">Load from storage</button>
+            <button type="button" class="clear-collection">Clear storage</button>
+          </div>
+
           <div class="form-group">
             <label for="post-title">Title:</label>
             <input type="text" id="post-title" name="title" required />
@@ -134,24 +144,52 @@ export class PostCollectionView {
 
     const form = root.querySelector('.create-post-form form') as HTMLFormElement;
     
-    const submitHandler = (event: Event) => {
-      event.preventDefault();
+    form.addEventListener('submit', this.submitHandler);
+    form.addEventListener('reset', this.resetHandler);
 
-      this._context.selectedPost.title = (root.querySelector('#post-title') as HTMLInputElement).value;
-      this._context.selectedPost.author = (root.querySelector('#post-author') as HTMLInputElement).value;
-      this._context.selectedPost.body = (root.querySelector('#post-body') as HTMLTextAreaElement).value;
+    const saveCollectionButton = root.querySelector('.save-collection') as HTMLButtonElement;
+    saveCollectionButton.addEventListener('click', this.saveCollectionHandler);
 
-      this._context.saveSelectedPost();
-    };
+    const loadCollectionButton = root.querySelector('.load-collection') as HTMLButtonElement;
+    loadCollectionButton.addEventListener('click', this.loadCollectionHandler);
 
-    const resetHandler = (event: Event) => {
-      event.preventDefault();
-      this._context.selectNewPost();
-    };
+    const clearCollectionButton = root.querySelector('.clear-collection') as HTMLButtonElement;
+    clearCollectionButton.addEventListener('click', this.clearSavedCollection);
 
-    form.addEventListener('submit', submitHandler);
-    form.addEventListener('reset', resetHandler);
+    const loadPredefinedButton = root.querySelector('.load-predefined') as HTMLButtonElement;
+    loadPredefinedButton.addEventListener('click', this.loadPredefinedHandler);
 
     return root;
+  }
+
+  private submitHandler = (event: Event) => {
+    event.preventDefault();
+
+    this._context.selectedPost.title = (this._root.querySelector('#post-title') as HTMLInputElement).value;
+    this._context.selectedPost.author = (this._root.querySelector('#post-author') as HTMLInputElement).value;
+    this._context.selectedPost.body = (this._root.querySelector('#post-body') as HTMLTextAreaElement).value;
+
+    this._context.saveSelectedPost();
+  };
+
+  private resetHandler = (event: Event) => {
+    event.preventDefault();
+    this._context.selectNewPost();
+  };
+
+  private saveCollectionHandler = (_: Event) => {
+    this._context.saveCollectionToStorage();
+  }
+
+  private loadCollectionHandler = (_: Event) => {
+    this._context.loadCollectionFromStorage();
+  };
+
+  private clearSavedCollection = (_: Event) => {
+    this._context.clearSavedData();
+  }
+
+  private loadPredefinedHandler = (_: Event) => {
+    this._context.loadPredefinedPosts();
   }
 }

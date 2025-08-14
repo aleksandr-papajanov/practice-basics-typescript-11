@@ -34,6 +34,15 @@ export class PostView {
     private build(): HTMLElement {
         const article = document.createElement('article');
 
+        const date = new Date(this._context.modifiedAt);
+        let dateString = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
         article.className = 'post';
         article.innerHTML = `
             <h2 class="title">${this._context.title}</h2>
@@ -44,7 +53,7 @@ export class PostView {
 
             <div class="meta">
             <span class="author">By ${this._context.author}</span>
-            <span class="date">${this._context.modifiedAt}</span>
+            <span class="date">${dateString}</span>
             </div>
 
             <div class="actions">
@@ -121,7 +130,17 @@ export class PostView {
             
             case 'modifiedAt':
                 const dateElement = this._root.querySelector('.date');
-                if (dateElement) dateElement.textContent = this._context.modifiedAt;
+                if (dateElement) {
+                    const date = new Date(this._context.modifiedAt);
+                    let dateString = date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    dateElement.textContent = dateString;
+                }
                 break;
         }
     }

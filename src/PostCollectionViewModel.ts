@@ -1,6 +1,14 @@
 import { ObservableCollection } from './observableCollection';
 import { NotifyPropertyChanged } from './notifyPropertyChanged';
 import { PostViewModel } from './postViewModel';
+import { blogPosts } from './data';
+import type { IPost } from './iPost';
+
+export interface ISaveStorage {
+  posts: IPost[];
+  lastSaved: string;
+  totalPosts: number;
+}
 
 export class PostCollectionViewModel extends NotifyPropertyChanged<PostCollectionViewModel> {
   private _posts: ObservableCollection<PostViewModel> = new ObservableCollection<PostViewModel>();
@@ -46,13 +54,7 @@ export class PostCollectionViewModel extends NotifyPropertyChanged<PostCollectio
   }
 
   public saveSelectedPost(): void {
-    this._selectedPost.modifiedAt = new Date().toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    this._selectedPost.modifiedAt = new Date().toISOString();
     
     this._selectedPost.saveToSource();
 
@@ -76,5 +78,69 @@ export class PostCollectionViewModel extends NotifyPropertyChanged<PostCollectio
 
   public subscribeCollectionChanged(callback: (data: { action: string, item?: PostViewModel, oldIndex?: number, newIndex?: number, propertyName?: keyof PostViewModel }) => void): void {
     this._posts.subscribe('collectionChanged', callback);
+  }
+
+  public clearAllPosts(): void {
+    this._posts.clear();
+    this.selectNewPost();
+  }
+
+  public saveCollectionToStorage(): void {
+    const postsData: IPost[] = this._posts.items.map(post => post.source);
+
+    const dataToSave: ISaveStorage = {
+      posts: postsData,
+      lastSaved: new Date().toISOString(),
+      totalPosts: postsData.length
+    };
+
+    // Otherwise doesn't work idk why
+    setTimeout(() => {
+      localStorage.setItem('hamster-blog-posts', JSON.stringify(dataToSave));
+    }, 100);
+  }
+
+  public loadCollectionFromStorage(): void {
+    this.clearAllPosts();
+
+    const savedData = localStorage.getItem('hamster-blog-posts');
+
+    if (!savedData)
+      throw new Error('No saved data found, starting fresh');
+
+    const jsonData: ISaveStorage = JSON.parse(savedData);
+
+    jsonData.posts.reverse().forEach((postData: IPost) => {
+      this.addPost(new PostViewModel(postData));
+    });
+
+    this.selectNewPost();
+  }
+
+  public enableAutoSave(): void {
+    this._posts.subscribe('collectionChanged', (data) => {
+      if (data.action === 'update') {
+          const visualProperties = ['modifiedAt'];
+
+        if (!visualProperties.includes(data.propertyName as string))
+            return;
+      }
+
+      this.saveCollectionToStorage();
+      console.log('Auto-saved');
+    });
+
+    console.log('Auto-save enabled');
+  }
+
+  public clearSavedData(): void {
+    localStorage.removeItem('hamster-blog-posts');
+    this.clearAllPosts();
+  }
+  
+  public loadPredefinedPosts(): void {
+    blogPosts.forEach(blogPost => {
+        this.addPost(new PostViewModel(blogPost));
+    });
   }
 }
