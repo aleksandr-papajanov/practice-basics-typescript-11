@@ -1,9 +1,9 @@
-import './style.css'
-import { PostCollectionViewModel } from './PostCollectionViewModel';
-import { PostCollectionView } from './PostCollectionView';
-import { PostViewModel } from './PostViewModel';
+import './style.css';
+import { PostCollectionViewModel } from './postCollectionViewModel';
+import { PostCollectionView } from './postCollectionView';
+import { PostViewModel } from './postViewModel';
 
-// Create and bind our ViewModel to the View
+// Create and bind the ViewModel to the View
 const postCollectionViewModel = new PostCollectionViewModel();
 const postCollectionView = new PostCollectionView(postCollectionViewModel);
 
@@ -16,6 +16,5 @@ import { blogPosts } from './data';
 
 blogPosts.map(post => {
     const vm = new PostViewModel(post);
-    vm.isManaged = true;
     postCollectionViewModel.addPost(vm);
 });

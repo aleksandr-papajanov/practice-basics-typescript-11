@@ -1,4 +1,4 @@
-import type { EventListener } from './eventListener';
+type EventListener<T> = (data: T) => void;
 
 export type NotifyPropertyChangedEvents<T = any> = {
   'propertyChanged': {
@@ -62,7 +62,7 @@ export abstract class NotifyPropertyChanged<T> {
     }
   }
 
-  protected raiseAndSetProperty<K extends keyof T>(currentValue: T[K], newValue: T[K], propertyName: K, setter: (value: T[K]) => void): boolean {
+  protected raiseAndSetIfChanged<K extends keyof T>(currentValue: T[K], newValue: T[K], propertyName: K, setter: (value: T[K]) => void): boolean {
     if (currentValue !== newValue) {
       setter(newValue);
       this.raisePropertyChanged(propertyName, currentValue, newValue);
@@ -70,15 +70,5 @@ export abstract class NotifyPropertyChanged<T> {
     }
 
     return false;
-  }
-
-  protected createNotifyingProperty<K extends keyof T>(getValue: () => T[K], setValue: (value: T[K]) => void, propertyName: K) {
-    return {
-      get: getValue,
-      set: (value: T[K]): void => {
-        const oldValue = getValue();
-        this.raiseAndSetProperty(oldValue, value, propertyName, setValue);
-      }
-    };
   }
 }

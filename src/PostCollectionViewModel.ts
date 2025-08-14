@@ -1,12 +1,10 @@
-import { ObservableCollection } from './observableCollection.ts';
-import { PostViewModel } from './PostViewModel';
-import { NotifyPropertyChanged } from './notifyPropertyChanged.ts';
+import { ObservableCollection } from './observableCollection';
+import { NotifyPropertyChanged } from './notifyPropertyChanged';
+import { PostViewModel } from './postViewModel';
 
 export class PostCollectionViewModel extends NotifyPropertyChanged<PostCollectionViewModel> {
   private _posts: ObservableCollection<PostViewModel> = new ObservableCollection<PostViewModel>();
   private _selectedPost!: PostViewModel;
-
-  // === Properties accessors ===
 
   public get selectedPost(): PostViewModel {
     return this._selectedPost;
@@ -15,13 +13,11 @@ export class PostCollectionViewModel extends NotifyPropertyChanged<PostCollectio
   public set selectedPost(value: PostViewModel) {
     const oldSelectedPost = this._selectedPost;
 
-    if (this.raiseAndSetProperty(oldSelectedPost, value, 'selectedPost', (v) => this._selectedPost = v))
-    {
-      if (oldSelectedPost)
+    if (this.raiseAndSetIfChanged(this._selectedPost, value, 'selectedPost', (v) => this._selectedPost = v)) {
+      if (oldSelectedPost != undefined)
         oldSelectedPost.isSelected = false;
-      
-      if (this._posts.has(this._selectedPost))
-        this._selectedPost.isSelected = true;
+
+      this._selectedPost.isSelected = true;
     }
   }
 
@@ -50,21 +46,27 @@ export class PostCollectionViewModel extends NotifyPropertyChanged<PostCollectio
   }
 
   public saveSelectedPost(): void {
-    this._selectedPost.modifiedAt = new Date().toISOString();
+    this._selectedPost.modifiedAt = new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
     this._selectedPost.saveToSource();
 
-    if (!this._selectedPost.isManaged) {
+    if (!this._posts.has(this._selectedPost)) {
       this._posts.add(this._selectedPost);
-      this._selectedPost.isManaged = true;
     }
   }
 
   public movePostUp(post: PostViewModel): void {
-    this._posts.up(post);
+    this._posts.move(post, this._posts.findIndex(post) - 1);
   }
 
   public movePostDown(post: PostViewModel): void {
-    this._posts.down(post);
+    this._posts.move(post, this._posts.findIndex(post) + 1);
   }
 
   public addPost(post: PostViewModel): void {
@@ -72,7 +74,7 @@ export class PostCollectionViewModel extends NotifyPropertyChanged<PostCollectio
     post.isManaged = true;
   }
 
-  public subscribeCollectionChanged(callback: (data: { action: string, item?: PostViewModel, oldIndex?: number, newIndex?: number, propertyName?: string }) => void): void {
+  public subscribeCollectionChanged(callback: (data: { action: string, item?: PostViewModel, oldIndex?: number, newIndex?: number, propertyName?: keyof PostViewModel }) => void): void {
     this._posts.subscribe('collectionChanged', callback);
   }
 }

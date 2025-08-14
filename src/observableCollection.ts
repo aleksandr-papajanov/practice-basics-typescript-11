@@ -4,7 +4,7 @@ type EventListener<T> = (data: T) => void;
 
 export type ObservableCollectionEvents<T> = {
   'collectionChanged': {
-    action: 'add' | 'remove' | 'move' | 'update' | 'clear';
+    action: 'insert' | 'remove' | 'move' | 'clear';
     item?: T;
     oldIndex?: number;
     newIndex?: number;
@@ -22,25 +22,27 @@ export class ObservableCollection<T> {
   }
 
   public add(item: T): void {
-    this._collection.push(item);
-    const index = this._collection.length - 1;
+    this._collection = [item, ...this._collection];
+    const index = 0;
 
-    if (item instanceof NotifyPropertyChanged) {
-      const listener = (_: any) => {
-        this.invoke('collectionChanged', {
-          action: 'update',
-          item: item,
-          propertyName: _.propertyName,
-          oldIndex: index
-        });
-      };
+    // if (item instanceof NotifyPropertyChanged) {
+    //   const listener = (_: any) => {
+    //     const currentIndex = this.findIndex(item);
 
-      item.subscribe('propertyChanged', listener);
-      this._propertyChangedListeners.set(item, listener);
-    }
+    //     this.invoke('collectionChanged', {
+    //       action: 'update',
+    //       item: item,
+    //       propertyName: _.propertyName,
+    //       oldIndex: currentIndex
+    //     });
+    //   };
+
+    //   item.subscribe('propertyChanged', listener);
+    //   this._propertyChangedListeners.set(item, listener);
+    // }
 
     this.invoke('collectionChanged', {
-      action: 'add',
+      action: 'insert',
       item: item,
       newIndex: index
     });
@@ -48,10 +50,6 @@ export class ObservableCollection<T> {
 
   public remove(item: T): void {
     const index = this.findIndex(item);
-
-    if (index < 0 || index >= this._collection.length)
-      return;
-
     const removedItem = this._collection.splice(index, 1)[0];
 
     // Unsubscribe from its property changes
@@ -71,36 +69,22 @@ export class ObservableCollection<T> {
     });
   }
 
-  public up(item: T): void {
-    const index = this.findIndex(item);
-    const newIndex = index - 1;
+  public move(item: T, newIndex: number): void {
+    const oldIndex = this.findIndex(item);
 
-    if (newIndex < 0)
-      throw new Error(`Cannot move item up: it is already at the top`);
+    if (newIndex < 0 || newIndex >= this._collection.length)
+      throw new Error(`Cannot move item: index out of bounds`);
 
-    [this._collection[index], this._collection[newIndex]] = [this._collection[newIndex], this._collection[index]];
+    if (oldIndex === newIndex)
+      return;
 
-    this.invoke('collectionChanged', {
-      action: 'move',
-      item: item,
-      oldIndex: index,
-      newIndex: newIndex,
-    });
-  }
-
-  public down(item: T): void {
-    const index = this.findIndex(item);
-    const newIndex = index + 1;
-
-    if (newIndex >= this._collection.length)
-      throw new Error(`Cannot move item down: it is already at the bottom`);
-
-    [this._collection[index], this._collection[newIndex]] = [this._collection[newIndex], this._collection[index]];
+    this._collection.splice(oldIndex, 1);
+    this._collection.splice(newIndex, 0, item);
 
     this.invoke('collectionChanged', {
       action: 'move',
       item: item,
-      oldIndex: index,
+      oldIndex: oldIndex,
       newIndex: newIndex,
     });
   }
@@ -110,16 +94,16 @@ export class ObservableCollection<T> {
     this._collection = [];
 
     // Unsubscribe from property changes of all items
-    oldItems.forEach(item => {
-      if (item instanceof NotifyPropertyChanged) {
-        const listener = this._propertyChangedListeners.get(item);
+    // oldItems.forEach(item => {
+    //   if (item instanceof NotifyPropertyChanged) {
+    //     const listener = this._propertyChangedListeners.get(item);
 
-        if (listener) {
-          item.unsubscribe('propertyChanged', listener);
-          this._propertyChangedListeners.delete(item);
-        }
-      }
-    });
+    //     if (listener) {
+    //       item.unsubscribe('propertyChanged', listener);
+    //       this._propertyChangedListeners.delete(item);
+    //     }
+    //   }
+    // });
 
     if (oldItems.length > 0) {
       this.invoke('collectionChanged', {
@@ -128,7 +112,7 @@ export class ObservableCollection<T> {
     }
   }
 
-  private findIndex(item: T): number {
+  public findIndex(item: T): number {
     let i = this._collection.findIndex(p => p === item);
 
     if (i === -1)
@@ -161,5 +145,7 @@ export class ObservableCollection<T> {
     if (eventListeners) {
       eventListeners.forEach(listener => listener(data));
     }
+
+    console.log(`Event: ${event}`, data);
   }
 }
